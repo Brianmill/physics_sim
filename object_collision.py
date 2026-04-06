@@ -2,6 +2,11 @@ import numpy as np
 import math
 import random
 
+try:
+    import collision_core
+except ImportError:
+    collision_core = None
+
 # function to find all circles within 2r of a given circle x coordinate
 def find_near_object(object_index, object_list):
 
@@ -16,14 +21,16 @@ def find_near_object(object_index, object_list):
 
     # check left side
     i = object_index - 1
-    while i >= 0 and abs(object_list[i].x - target_x) <= 2.5 * target_r:
-        near_object.append(object_list[i])
+    while i >= 0 and abs(object_list[i].x - target_x) <= 2 * target_r:
+        if abs(target_object.y - object_list[i].y) < 2 * target_r:
+            near_object.append(object_list[i])
         i -= 1
 
     # check right side
     i = object_index + 1
     while i < len(object_list) and abs(object_list[i].x - target_x) <= 2 * target_r:
-        near_object.append(object_list[i])
+        if abs(target_object.y - object_list[i].y) < 2 * target_r:
+            near_object.append(object_list[i])
         i += 1
 
     return near_object
@@ -111,30 +118,62 @@ def calculate_distance(object, object2):
 
     dx = object.x - object2.x
     dy = object.y - object2.y
-    distance = math.sqrt(dx**2 + dy**2)
+    distance = dx * dx + dy * dy
     return distance
 
 # collision between two objects
 def check_collision(object, object2):
 
-    distance = calculate_distance(object, object2)
+    sqr_distance = calculate_distance(object, object2)
 
-    if distance < object.radius + object2.radius:
+    if sqr_distance < (object.radius + object2.radius) * (object.radius + object2.radius):
         return True
     return False
 
 def handle_object_collision(object1, object2, energy_loss, friction):
 
+    if collision_core is not None:
+
+        collided, x1, y1, vx1, vy1, x2, y2, vx2, vy2 = collision_core.resolve_object_collision(
+            object1.x,
+            object1.y,
+            object1.velocity[0],
+            object1.velocity[1],
+            object1.mass,
+            object1.radius,
+            object2.x,
+            object2.y,
+            object2.velocity[0],
+            object2.velocity[1],
+            object2.mass,
+            object2.radius,
+            energy_loss,
+            friction,
+        )
+
+        if collided:
+            object1.x = x1
+            object1.y = y1
+            object1.velocity[0] = vx1
+            object1.velocity[1] = vy1
+            object2.x = x2
+            object2.y = y2
+            object2.velocity[0] = vx2
+            object2.velocity[1] = vy2
+        return
+
     if check_collision(object1, object2):
 
-        distance = calculate_distance(object1, object2)
+        sqr_distance = calculate_distance(object1, object2)
+        distance = math.sqrt(sqr_distance)
 
         # randomly seperate objects if they are inside of eachother
         if distance == 0:
             directions = [-1, 1]
             object1.x += object1.radius * 2 * random.choice(directions) + 1
             object1.y += object1.radius * 2 * random.choice(directions) + 1
-            distance = calculate_distance(object1, object2)
+            sqr_distance = calculate_distance(object1, object2)
+            distance = math.sqrt(sqr_distance)
         
         # Normal vector: from object1 toward object2
         normal = np.array([(object2.x - object1.x) / distance,
