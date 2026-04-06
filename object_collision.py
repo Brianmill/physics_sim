@@ -2,6 +2,32 @@ import numpy as np
 import math
 import random
 
+# function to find all circles within 2r of a given circle x coordinate
+def find_near_object(object_index, object_list):
+
+    target_object = object_list[object_index]
+    near_object = []
+
+    if object_index is None:
+        return near_object
+
+    target_x = target_object.x
+    target_r = target_object.radius
+
+    # check left side
+    i = object_index - 1
+    while i >= 0 and abs(object_list[i].x - target_x) <= 2.5 * target_r:
+        near_object.append(object_list[i])
+        i -= 1
+
+    # check right side
+    i = object_index + 1
+    while i < len(object_list) and abs(object_list[i].x - target_x) <= 2 * target_r:
+        near_object.append(object_list[i])
+        i += 1
+
+    return near_object
+
 def handle_wall_collision(object, boundry, energy_loss, friction):
 
     if touching_boundry(object, boundry):

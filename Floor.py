@@ -19,7 +19,8 @@ class Floor:
         dx = self.end[0] - self.start[0]
         dy = self.end[1] - self.start[1]
 
-        length = max(abs(dx), abs(dy))
+        #length = max(abs(dx), abs(dy))
+        length = math.sqrt(dx**2 + dy**2)
 
         if length == 0:
             raise ValueError("Start and end points cannot be the same")
